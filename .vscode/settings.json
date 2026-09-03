@@ -3,6 +3,14 @@
 	"editor.formatOnSave": true,
 	"editor.defaultFormatter": "biomejs.biome",
 	"[html]": {
-		"editor.defaultFormatter": "vscode.html-language-features"
-	}
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.formatOnSave": true,
+		"editor.quickSuggestions": {
+			"strings": true
+		}
+	},
+	"emmet.showExpandedAbbreviation": "always",
+	"emmet.triggerExpansionOnTab": true,
+	"prettier.requireConfig": false,
+	"html.suggest.html5": true
 }

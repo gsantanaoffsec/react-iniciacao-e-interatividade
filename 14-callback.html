@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+
+  <body>
+    <!-- Elemento vazio que serve de "porta de entrada": todo o React vai ser renderizado aqui dentro -->
+    <div id="root"></div>
+
+    <!-- React puro (cria elementos, gerencia estado) -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <!-- ReactDOM: parte que sabe colocar/atualizar isso no DOM do navegador -->
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel: traduz o JSX (<main>, <button>) para JavaScript que o navegador entende -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- type="text/babel" avisa o Babel: "esse script aqui é pra você traduzir antes de rodar" -->
+    <script type="text/babel">
+      function App() {
+        // Estado 1: guarda se o relógio está no formato 12h. Começa em false (= 24h).
+        const [isTwelveHours, setIsTwelveHours] = React.useState(false)
+
+        // Estado 2: guarda a string do horário já formatado que aparece na tela.
+        // Começa vazia porque ainda não calculamos nada.
+        const [time, setTime] = React.useState('')
+
+        // useCallback recebe DOIS argumentos:
+        //   1º) a função que queremos memorizar (o "callback" em si)
+        //   2º) o array de dependências, que define quando essa função pode ser recriada
+        const updateTime = React.useCallback(() => {
+          // Date.now() devolve o instante atual em milissegundos (um número puro).
+          // new Date(...) transforma esse número num objeto de data, que sabe se formatar.
+          const now = new Date(Date.now())
+
+          // toLocaleTimeString transforma a data numa STRING contendo só o horário,
+          // no padrão brasileiro ('pt-BR').
+          const formattedTime = now.toLocaleTimeString('pt-BR', {
+            hour: '2-digit',    // força 2 dígitos: 09 em vez de 9
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: isTwelveHours, // true -> "02:30:15 PM" | false -> "14:30:15"
+          })
+
+          // Atualiza o estado -> o React re-renderiza -> a tela mostra o horário novo.
+          setTime(formattedTime)
+
+        // ARGUMENTO 2 do useCallback: o array de dependências.
+        // Traduzindo: "só me devolva uma função NOVA se isTwelveHours mudar".
+        // Enquanto ele não mudar, o React devolve exatamente a MESMA função de antes.
+        //
+        // Por que isso importa aqui? Este componente re-renderiza a cada segundo
+        // (porque setTime muda o estado). Sem useCallback, updateTime seria uma
+        // função nova a cada segundo — e o useEffect abaixo, que depende dela,
+        // destruiria e recriaria o intervalo o tempo todo.
+        //
+        // isTwelveHours PRECISA estar aqui: a função lê essa variável lá dentro.
+        // Se deixássemos o array vazio ([]), a função ficaria congelada com o
+        // primeiro valor (false) e o botão nunca teria efeito.
+        }, [isTwelveHours])
+
+        React.useEffect(() => {
+          // Chamada imediata: sem isso, o relógio ficaria vazio no primeiro segundo,
+          // porque o setInterval abaixo só dispara DEPOIS de 1000ms.
+          updateTime()
+
+          // Agenda updateTime para rodar de 1 em 1 segundo.
+          // setInterval devolve um id (um número) que identifica esse agendamento —
+          // guardamos em "timer" justamente para poder cancelá-lo depois.
+          const timer = setInterval(() => {
+            updateTime()
+          }, 1000)
+
+          // Função de LIMPEZA. O React executa ela quando o componente sai da tela
+          // ou ANTES de rodar este efeito de novo.
+          // Sem ela, cada troca de formato deixaria o intervalo antigo vivo e você
+          // acabaria com vários relógios rodando ao mesmo tempo.
+          return () => clearInterval(timer)
+
+        // Dependência do efeito: "refaça tudo isso se updateTime for uma função diferente".
+        // Como o useCallback mantém a mesma referência, isso só acontece quando o
+        // botão é clicado (isTwelveHours muda -> updateTime nova -> efeito roda de novo).
+        }, [updateTime])
+
+        return (
+          <main>
+            {/* {time} é a string do estado; muda a cada segundo */}
+            <div>🕒 {time}</div>
+
+            {/* Inverte o booleano: false -> true -> false...
+                O texto mostra o formato de DESTINO, não o atual:
+                se já está em 12h, o botão oferece voltar para 24h. */}
+            <button onClick={() => setIsTwelveHours(!isTwelveHours)}>
+              Alterar para formato {isTwelveHours ? '24h' : '12h'}
+            </button>
+          </main>
+        )
+      }
+
+      // API do React 18: cria a "raiz" dentro da div#root e renderiza <App /> nela.
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+    </script>
+  </body>
+</html>
